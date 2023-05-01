@@ -1,0 +1,9 @@
+name: imgconv
+description: Convert images from webp to gif.
+version: 1.0.0
+
+environment:
+  sdk: ">=2.18.2 <3.0.0"
+
+dependencies:
+  image: ^4.0.16
