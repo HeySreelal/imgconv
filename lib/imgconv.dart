@@ -32,7 +32,10 @@ void main([List<String>? args]) async {
   }
 
   final files = Directory.current.listSync().toList();
-  final webpfiles = files.where((file) => file.path.endsWith('.webp')).toList();
+  final webpfiles = files
+      .where((file) => file is File && file.path.endsWith('.webp'))
+      .toList()
+      .cast<File>();
 
   if (webpfiles.isEmpty) {
     print('No .webp files found!');
@@ -40,8 +43,37 @@ void main([List<String>? args]) async {
   }
 
   print('Converting ${webpfiles.length} files...');
+  if (webpfiles.length < 10) {
+    await convertAllTogether(webpfiles, delete);
+  } else {
+    await convertOneByOne(webpfiles, delete);
+  }
 
-  final futures = webpfiles.map(
+  print('Done!');
+}
+
+Future<Img> convert(
+  String path, {
+  bool deleteAfterConversion = false,
+}) async {
+  try {
+    final filename = path.split('/').last.split('.').first;
+    final cmd = img.Command()
+      ..decodeImageFile(path)
+      ..writeToFile('$filename.gif');
+    await cmd.execute();
+    if (deleteAfterConversion) {
+      File(path).deleteSync();
+    }
+    return Img(path, success: true);
+  } catch (e, st) {
+    print('Error converting $path: $e\n$st');
+    return Img(path, success: false, error: e, stackTrace: st);
+  }
+}
+
+Future<void> convertAllTogether(List<File> files, bool delete) async {
+  final futures = files.map(
     (file) => convert(
       file.path,
       deleteAfterConversion: delete,
@@ -64,26 +96,20 @@ void main([List<String>? args]) async {
   } catch (e) {
     print('Error converting files: $e');
   }
-
-  print('Done!');
 }
 
-Future<Img> convert(
-  String path, {
-  bool deleteAfterConversion = false,
-}) async {
-  try {
-    final filename = path.split('/').last.split('.').first;
-    final cmd = img.Command()
-      ..decodeImageFile(path)
-      ..writeToFile('$filename.gif');
-    await cmd.execute();
-    if (deleteAfterConversion) {
-      File(path).deleteSync();
+Future<void> convertOneByOne(List<File> files, bool delete) async {
+  int success = 0, failure = 0;
+  for (int i = 0; i < files.length; i++) {
+    final file = files[i];
+    print('Converting ${i + 1}/${files.length}: ${file.path}');
+    final result = await convert(file.path, deleteAfterConversion: delete);
+    if (result.success) {
+      success++;
+    } else {
+      failure++;
     }
-    return Img(path, success: true);
-  } catch (e, st) {
-    print('Error converting $path: $e');
-    return Img(path, success: false, error: e, stackTrace: st);
   }
+
+  print('{Success: $success, Failure: $failure}');
 }
