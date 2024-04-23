@@ -16,6 +16,9 @@ void main([List<String>? args]) async {
     print("  -h, --help    Print this usage information.");
     print("  -v, --version Print the current version.");
     print("  -d, --delete  Delete the .webp files after conversion.");
+    print(
+      "  -e, --out-ext Sets the extension of the output file. Defaults to '.gif'",
+    );
     return;
   }
 
@@ -31,6 +34,22 @@ void main([List<String>? args]) async {
     delete = args.contains('-d') || args.contains('--delete');
   }
 
+  String opExt = ".gif";
+  if (args != null && args.isNotEmpty) {
+    final extShort = args.contains('-e');
+    final extLong = args.contains('--out-ext');
+    final containsExt = extShort || extLong;
+    if (containsExt) {
+      int ix = -1;
+      if (extShort) {
+        ix = args.indexOf('-e');
+      } else {
+        ix = args.indexOf('--out-ext');
+      }
+      opExt = args[ix + 1];
+    }
+  }
+
   final files = Directory.current.listSync().toList();
   final webpfiles = files
       .where((file) => file is File && file.path.endsWith('.webp'))
@@ -44,9 +63,9 @@ void main([List<String>? args]) async {
 
   print('Converting ${webpfiles.length} files...');
   if (webpfiles.length < 10) {
-    await convertAllTogether(webpfiles, delete);
+    await convertAllTogether(webpfiles, delete, opExt: opExt);
   } else {
-    await convertOneByOne(webpfiles, delete);
+    await convertOneByOne(webpfiles, delete, opExt: opExt);
   }
 
   print('Done!');
@@ -55,12 +74,13 @@ void main([List<String>? args]) async {
 Future<Img> convert(
   String path, {
   bool deleteAfterConversion = false,
+  String opExt = ".gif",
 }) async {
   try {
     final filename = path.split('/').last.split('.').first;
     final cmd = img.Command()
       ..decodeImageFile(path)
-      ..writeToFile('$filename.gif');
+      ..writeToFile('$filename$opExt');
     await cmd.execute();
     if (deleteAfterConversion) {
       File(path).deleteSync();
@@ -72,11 +92,16 @@ Future<Img> convert(
   }
 }
 
-Future<void> convertAllTogether(List<File> files, bool delete) async {
+Future<void> convertAllTogether(
+  List<File> files,
+  bool delete, {
+  required String opExt,
+}) async {
   final futures = files.map(
     (file) => convert(
       file.path,
       deleteAfterConversion: delete,
+      opExt: opExt,
     ),
   );
   try {
@@ -98,12 +123,20 @@ Future<void> convertAllTogether(List<File> files, bool delete) async {
   }
 }
 
-Future<void> convertOneByOne(List<File> files, bool delete) async {
+Future<void> convertOneByOne(
+  List<File> files,
+  bool delete, {
+  required String opExt,
+}) async {
   int success = 0, failure = 0;
   for (int i = 0; i < files.length; i++) {
     final file = files[i];
     print('Converting ${i + 1}/${files.length}: ${file.path}');
-    final result = await convert(file.path, deleteAfterConversion: delete);
+    final result = await convert(
+      file.path,
+      deleteAfterConversion: delete,
+      opExt: opExt,
+    );
     if (result.success) {
       success++;
     } else {
