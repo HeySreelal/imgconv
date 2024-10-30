@@ -3,7 +3,10 @@ description: Convert images from webp to gif.
 version: 1.0.0
 
 environment:
-  sdk: ">=2.18.2 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   image: ^4.0.16
+
+dev_dependencies:
+  lints: ^5.0.0
