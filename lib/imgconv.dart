@@ -12,11 +12,12 @@ void main([List<String>? args]) async {
       return;
     }
     if (args.contains('-v') || args.contains('--version')) {
-      print('ImgConv v1.0.0');
+      print('ImgConv v1.0.1');
       return;
     }
   }
 
+  int batchSize = 5;
   bool deleteAfterConversion = args?.contains('-d') ?? false;
   String outputExtension =
       getArg(args, '-e', '--out-ext', defaultValue: '.gif');
@@ -27,15 +28,12 @@ void main([List<String>? args]) async {
     return;
   }
 
-  print('Converting ${webpFiles.length} files...');
-
-  int batchSize = 5;
-
+  print('${DateTime.now()} - Converting ${webpFiles.length} files...');
   await convertInBatches(
     webpFiles,
     batchSize,
     deleteAfterConversion,
     outputExtension,
   );
-  print('Done!');
+  print('${DateTime.now()} - Done!');
 }
